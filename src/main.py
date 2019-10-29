@@ -1,7 +1,8 @@
 from core import Escola
 
 if __name__ == "__main__":
-    escola = Escola("https://www.escol.as/estados/19-rio-de-janeiro")
+    escola = Escola("https://www.escol.as/estados")
 
-    print(escola.get_cities())
-    # escola.get_school_category()
+    for link in escola.get_cities():
+        print(link)
+    # escola.get_school_category
