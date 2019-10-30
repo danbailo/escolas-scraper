@@ -20,8 +20,7 @@ class Escola:
         self.__schools_links_public = []
         self.__schools_links_private = []
 
-        self.__data = {}
-        self.__key = 0
+        self.__data = []
 
     def __get_states(self):
         response = requests.get(self.__url)
@@ -157,8 +156,7 @@ class Escola:
         if temp_streetAddress: streetAddress = temp_streetAddress.text
         # postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
 
-        self.__data[self.__key] = state, city, neighborhood, school_name, "Escola Pública", telephone, email, streetAddress
-        self.__key += 1
+        self.__data.append((state, city, neighborhood, school_name, "Escola Pública", telephone, email, streetAddress))
         # print(state)
         # print(city[:-3])
         # print(neighborhood)
@@ -182,7 +180,6 @@ class Escola:
         
         address = school.find("table",attrs={"itemprop":"address"})
         if not address: return False
-
         
         state = "null"
         city = "null"
@@ -208,8 +205,7 @@ class Escola:
         if temp_streetAddress: streetAddress = temp_streetAddress.text
         # postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
 
-        self.__data[self.__key] = state, city, neighborhood, school_name, "Escola Particular", telephone, email, streetAddress
-        self.__key += 1
+        self.__data.append((state, city, neighborhood, school_name, "Escola Pública", telephone, email, streetAddress))
         # print(state)
         # print(city[:-3])
         # print(neighborhood)
@@ -263,7 +259,7 @@ class Escola:
         # with open("schools_links_private.txt","w") as file:
         #     for link in self.__schools_links_private:
         #         file.write(link+"\n")        
-        #     
+        #  
 
         with open("schools_links_public.txt") as file:
             for line in file:
@@ -272,7 +268,7 @@ class Escola:
         with open("schools_links_private.txt") as file:
             for line in file:
                 self.__schools_links_private.append(line[:-1])
-                
+
         self.get_data_public()
         self.get_data_private()
         self.write_sheet()
@@ -297,11 +293,11 @@ class Escola:
         # self.get_schools()                
 
     def write_sheet(self):
-        workbook = xlsxwriter.Workbook("escolas.xlsx")
+        workbook = xlsxwriter.Workbook("new_test_escolas.xlsx")
         worksheet = workbook.add_worksheet()
         bold = workbook.add_format({'bold': True})
 
-        values = list(self.__data.values())
+        # values = list(self.__data.values())
         worksheet.write(0, 0, "Estado",bold)
         worksheet.write(0, 1, "Cidade",bold)
         worksheet.write(0, 2, "Bairro",bold)
@@ -311,7 +307,7 @@ class Escola:
         worksheet.write(0, 6, "Email",bold)
         worksheet.write(0, 7, "Endereço",bold)
 
-        for row_number, info in enumerate(values):
+        for row_number, info in enumerate(self.__data):
             worksheet.write(row_number+1, 0, info[0])
             worksheet.write(row_number+1, 1, info[1])
             worksheet.write(row_number+1, 2, info[2])
@@ -322,28 +318,28 @@ class Escola:
             worksheet.write(row_number+1, 7, info[7])
         workbook.close()
 
-    def test(self):
-        response = requests.get("https://www.escol.as/279496-pingo-de-gente-creche-centro-de-educacao-infantil")
-        soup = BeautifulSoup(response.text, "html.parser")
-        school = soup.find("div", attrs={"class":"school"})
-        address = school.find("table",attrs={"itemprop":"address"})
+    # def test(self):
+    #     response = requests.get("https://www.escol.as/279496-pingo-de-gente-creche-centro-de-educacao-infantil")
+    #     soup = BeautifulSoup(response.text, "html.parser")
+    #     school = soup.find("div", attrs={"class":"school"})
+    #     address = school.find("table",attrs={"itemprop":"address"})
         
-        state = address.find("span",attrs={"itemprop":"addressRegion"}).text
-        city = address.find("span",attrs={"itemprop":"addressLocality"}).text[:-3]
-        neighborhood = address.find("strong").text
-        school_name = school.find("h1", attrs={"class":"school-name"}).text
-        telephone = address.find("a",attrs={"itemprop":"telephone"}).text
-        email = address.find("td", attrs={"itemprop":"email"}).text
-        streetAddress = address.find("span",attrs={"itemprop":"streetAddress"}).text
-        # postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
+    #     state = address.find("span",attrs={"itemprop":"addressRegion"}).text
+    #     city = address.find("span",attrs={"itemprop":"addressLocality"}).text[:-3]
+    #     neighborhood = address.find("strong").text
+    #     school_name = school.find("h1", attrs={"class":"school-name"}).text
+    #     telephone = address.find("a",attrs={"itemprop":"telephone"}).text
+    #     email = address.find("td", attrs={"itemprop":"email"}).text
+    #     streetAddress = address.find("span",attrs={"itemprop":"streetAddress"}).text
+    #     # postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
 
-        self.__data[self.__key] = state, city, neighborhood, school_name, "public", telephone, email
-        self.__key += 1
-        print(state)
-        print(city)
-        print(neighborhood)
-        print(school_name)
-        print(telephone)
-        print(email)
-        print(streetAddress)
-        # print(postalCode)        
+    #     self.__data[self.__key] = state, city, neighborhood, school_name, "public", telephone, email
+    #     self.__key += 1
+    #     print(state)
+    #     print(city)
+    #     print(neighborhood)
+    #     print(school_name)
+    #     print(telephone)
+    #     print(email)
+    #     print(streetAddress)
+    #     # print(postalCode)        
