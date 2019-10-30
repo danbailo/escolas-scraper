@@ -12,7 +12,8 @@ class Escola:
         self.__cities = []
         self.__categories = []
         self.__all_pages = []
-        self.__schools = []
+        self.__file_links = []
+        self.__schools_links = []
 
     def __get_states(self):
         response = requests.get(self.__url)
@@ -29,11 +30,7 @@ class Escola:
     
     def get_cities(self):
         pool = ThreadPool(16)
-        start = time()
         list(pool.imap(self.handler_cities, self.__get_states()))
-        end = time() - start
-        # print(*self.__cities, sep="\n")
-        # print(end)
          
     def handler_categories(self, city):
         if city:
@@ -44,11 +41,7 @@ class Escola:
 
     def get_school_category(self):
         pool = ThreadPool(64)
-        start = time()
         list(pool.imap(self.handler_categories, self.__cities))
-        end = time() - start
-        # print(*self.__categories, sep="\n")
-        # print(end)
 
     def handler_all_links(self, initial_url):
         url = initial_url
@@ -68,59 +61,63 @@ class Escola:
 
     def get_all_links(self):
         pool = ThreadPool(64)
-        start = time()
         list(pool.imap(self.handler_all_links, self.__categories))
-        end = time() - start
-        print(*self.__all_pages, sep="\n")
-        print(end)
 
-    # def handler_schools(self,school):
-    #     if school:
-    #         response = requests.get(self.__base_url+school)
-    #         soup = BeautifulSoup(response.text, "html.parser")
-    #         for link in soup.findAll("div", attrs={"class":"schools clearfix"}):
-    #             self.__schools.append(link.find("a")["href"])
-            
-
-    # def get_shools(self):
-    #     pool = ThreadPool(64)
-    #     start = time()
-    #     list(pool.imap(self.handler_schools, self.__categories))
-    #     end = time() - start
-    #     print(*self.__schools, sep="\n")
-    #     print(end)
-    
-    def test(self):        
-        url = "/cidades/3829-sao-paulo/categories/1-creche"
-        while True:
-            response = requests.get(self.__base_url+url)
+    def handler_schools(self,school):
+        if school:
+            response = requests.get(self.__base_url+school)
             soup = BeautifulSoup(response.text, "html.parser")
-            pagination = soup.find("ul",attrs={"class":"pagination"})
-            if pagination is None: break
-            next_page = pagination.find("li", attrs={"class":"next_page"})
-            if next_page is None: break
-            for link in next_page:
-                try:
-                    print(link["href"])
-                    self.__all_pages.append(link["href"])
-                    url = link["href"]
-                except Exception:
-                    pass        
-    
+            for link in soup.find("div", attrs={"class":"schools clearfix"}).findAll("a"):
+                self.__schools_links.append(link["href"])
+            
+    def get_shools(self,iterable):
+        pool = ThreadPool(64)
+        list(pool.imap(self.handler_schools, iterable))
+
+    def read_pages(self):
+        with open("all_pages.txt") as file:
+            for line in file:
+                self.__file_links.append(line[:-1])
+
     def work(self):
         self.get_cities()
         self.get_school_category()
-        # with open("shools.txt","w") as file:
-        #     for link in self.__categories:
-        #         file.write(link+"\n")
         self.get_all_links()
-        # with open("shools_NEXT.txt","w") as file:
-        #     for link in self.__all_pages:
-        #         file.write(link+"\n")
         pages = self.__categories + self.__all_pages
         pages_sorted = sorted(pages)
         with open("all_pages.txt","w") as file:
             for link in pages_sorted:
                 file.write(link+"\n")        
         # self.get_shools()
-        
+
+    def work_aux(self):
+        self.read_pages()
+        self.get_shools(self.__file_links)
+        with open("school_link.txt","w") as file:
+            for link in self.__schools_links:
+                file.write(link+"\n")    
+
+    def test(self):
+        response = requests.get("https://www.escol.as/67448-ideal-da-crianca-creche")
+        soup = BeautifulSoup(response.text, "html.parser")
+        # print(soup)
+        school = soup.find("div", attrs={"class":"school"})
+        school_name = school.find("h1", attrs={"class":"school-name"}).text
+       
+        address = school.find("table",attrs={"itemprop":"address"})
+        telephone = address.find("a",attrs={"itemprop":"telephone"}).text
+        streetAddress = address.find("span",attrs={"itemprop":"streetAddress"}).text
+        neighborhood = address.find("strong").text
+        addressLocality = address.find("span",attrs={"itemprop":"addressLocality"}).text
+        addressRegion = address.find("span",attrs={"itemprop":"addressRegion"}).text
+        postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
+
+        print(school)
+
+        print(school_name)
+        print(telephone)
+        print(streetAddress)
+        print(neighborhood)
+        print(addressLocality)
+        print(addressRegion)
+        print(postalCode)
