@@ -4,22 +4,17 @@ from time import time
 import requests
 import xlsxwriter
 
-#SE EU FOR REMODELAR O CODIGO, QND EU PEGAR OS LINKS EU COLOCO UMA FLAG PRA DIZER SE É PUBLICA OU PRIVADA, ASSIM VOU ECONOMIZAR MTO CODIGO!
-
 class Escola:
     def __init__(self,url):
         self.__url = url
         self.__base_url = "https://www.escol.as"
         self.__cities = []
-
         self.__public = []
         self.__private = []
         self.__all_pages_public = []
         self.__all_pages_private = []
-
         self.__schools_links_public = []
         self.__schools_links_private = []
-
         self.__data = []
 
     def __get_states(self):
@@ -29,32 +24,40 @@ class Escola:
         return links
 
     def handler_cities(self, state):
-        if state:
-            response = requests.get(self.__base_url+state)
-            soup = BeautifulSoup(response.text, "html.parser")
-            for link in soup.findAll("div", attrs={"class":"city"}):
-                self.__cities.append(link.find("a")["href"])        
+        while True:
+            try:
+                response = requests.get(self.__base_url+state)
+                soup = BeautifulSoup(response.text, "html.parser")
+                break
+            except Exception:
+                pass
+        for link in soup.findAll("div", attrs={"class":"city"}):
+            self.__cities.append(link.find("a")["href"])        
     
     def get_cities(self):
         pool = ThreadPool(16)
         list(pool.imap(self.handler_cities, self.__get_states()))
          
     def handler_categories(self, city):
-        if city:
-            response = requests.get(self.__base_url+city)
-            soup = BeautifulSoup(response.text, "html.parser")
-            school_categories = soup.findAll("div", attrs={"class":"col-md-6"})
-            if len(school_categories) == 1:
-                public_schools = school_categories[0]
-                for link in public_schools("li", attrs={"class":"school-category-item"}):
-                    self.__public.append(link.find("a")["href"])                
-            elif len(school_categories) == 2:
-                public_schools = school_categories[0]
-                private_schools = school_categories[1]                
-                for link in public_schools("li", attrs={"class":"school-category-item"}):
-                    self.__public.append(link.find("a")["href"])
-                for link in private_schools("li", attrs={"class":"school-category-item"}):
-                    self.__private.append(link.find("a")["href"])                
+        while True:
+            try:
+                response = requests.get(self.__base_url+city)
+                soup = BeautifulSoup(response.text, "html.parser")
+                break
+            except Exception:
+                pass
+        school_categories = soup.findAll("div", attrs={"class":"col-md-6"})
+        if len(school_categories) == 1:
+            public_schools = school_categories[0]
+            for link in public_schools("li", attrs={"class":"school-category-item"}):
+                self.__public.append(link.find("a")["href"])                
+        elif len(school_categories) == 2:
+            public_schools = school_categories[0]
+            private_schools = school_categories[1]                
+            for link in public_schools("li", attrs={"class":"school-category-item"}):
+                self.__public.append(link.find("a")["href"])
+            for link in private_schools("li", attrs={"class":"school-category-item"}):
+                self.__private.append(link.find("a")["href"])                
 
     def get_school_category(self):
         pool = ThreadPool(64)
@@ -63,8 +66,13 @@ class Escola:
     def handler_all_links_public(self, initial_url):
         url = initial_url
         while True:
-            response = requests.get(self.__base_url+url)
-            soup = BeautifulSoup(response.text, "html.parser")
+            while True:
+                try:
+                    response = requests.get(self.__base_url+url)
+                    soup = BeautifulSoup(response.text, "html.parser")
+                    break
+                except Exception:
+                    pass
             pagination = soup.find("ul",attrs={"class":"pagination"})
             if pagination is None: break
             next_page = pagination.find("li", attrs={"class":"next_page"})
@@ -76,11 +84,20 @@ class Escola:
                 except Exception:
                     pass
 
+    def get_all_links_public(self):
+        pool = ThreadPool(64)
+        list(pool.imap(self.handler_all_links_public, self.__public))
+
     def handler_all_links_private(self, initial_url):
         url = initial_url
         while True:
-            response = requests.get(self.__base_url+url)
-            soup = BeautifulSoup(response.text, "html.parser")
+            while True:
+                try:
+                    response = requests.get(self.__base_url+url)
+                    soup = BeautifulSoup(response.text, "html.parser")
+                    break
+                except Exception:
+                    pass
             pagination = soup.find("ul",attrs={"class":"pagination"})
             if pagination is None: break
             next_page = pagination.find("li", attrs={"class":"next_page"})
@@ -92,43 +109,50 @@ class Escola:
                 except Exception:
                     pass                      
 
-    def get_all_links_public(self):
-        pool = ThreadPool(64)
-        list(pool.imap(self.handler_all_links_public, self.__public))
-
     def get_all_links_private(self):
         pool = ThreadPool(64)
-        list(pool.imap(self.handler_all_links_public, self.__private))
+        list(pool.imap(self.handler_all_links_private, self.__private))
 
     def handler_schools_public(self,school):
-        if school:
-            response = requests.get(self.__base_url+school)
-            soup = BeautifulSoup(response.text, "html.parser")
-            for link in soup.find("div", attrs={"class":"schools clearfix"}).findAll("a"):
-                self.__schools_links_public.append(link["href"])
+        while True:
+            try:
+                response = requests.get(self.__base_url+school)
+                soup = BeautifulSoup(response.text, "html.parser")
+                break
+            except Exception:
+                pass            
+        for link in soup.find("div", attrs={"class":"schools clearfix"}).findAll("a"):
+            self.__schools_links_public.append(link["href"])
             
     def get_schools_public(self,iterable):
         pool = ThreadPool(64)
         list(pool.imap(self.handler_schools_public, iterable))
 
     def handler_schools_private(self,school):
-        if school:
-            response = requests.get(self.__base_url+school)
-            soup = BeautifulSoup(response.text, "html.parser")
-            for link in soup.find("div", attrs={"class":"schools clearfix"}).findAll("a"):
-                self.__schools_links_private.append(link["href"])
+        while True:
+            try:
+                response = requests.get(self.__base_url+school)
+                soup = BeautifulSoup(response.text, "html.parser")
+                break
+            except Exception:
+                pass
+        for link in soup.find("div", attrs={"class":"schools clearfix"}).findAll("a"):
+            self.__schools_links_private.append(link["href"])
             
     def get_schools_private(self,iterable):
         pool = ThreadPool(64)
         list(pool.imap(self.handler_schools_private, iterable))
 
     def handler_data_public(self, url):
-        response = requests.get(self.__base_url+url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        
+        while True:
+            try:
+                response = requests.get(self.__base_url+url)
+                soup = BeautifulSoup(response.text, "html.parser")
+                break
+            except:
+                pass
         school = soup.find("div", attrs={"class":"school"})
         if not school: return False
-        
         address = school.find("table",attrs={"itemprop":"address"})
         if not address: return False
 
@@ -154,30 +178,23 @@ class Escola:
         if temp_email: email = temp_email.text
         temp_streetAddress = address.find("span",attrs={"itemprop":"streetAddress"})
         if temp_streetAddress: streetAddress = temp_streetAddress.text
-        # postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
 
         self.__data.append((state, city, neighborhood, school_name, "Escola Pública", telephone, email, streetAddress))
-        # print(state)
-        # print(city[:-3])
-        # print(neighborhood)
-        # print(school_name)
-        # print(telephone)
-        # print(email)
-        # print(streetAddress)
-
-        # print(postalCode)      
 
     def get_data_public(self):
         pool = ThreadPool(64)
         list(pool.imap(self.handler_data_public, self.__schools_links_public))
 
     def handler_data_private(self, url):
-        response = requests.get(self.__base_url+url)
-        soup = BeautifulSoup(response.text, "html.parser")
-        
+        while True:
+            try:
+                response = requests.get(self.__base_url+url)
+                soup = BeautifulSoup(response.text, "html.parser")
+                break
+            except:
+                pass
         school = soup.find("div", attrs={"class":"school"})
         if not school: return False
-        
         address = school.find("table",attrs={"itemprop":"address"})
         if not address: return False
         
@@ -203,101 +220,18 @@ class Escola:
         if temp_email: email = temp_email.text
         temp_streetAddress = address.find("span",attrs={"itemprop":"streetAddress"})
         if temp_streetAddress: streetAddress = temp_streetAddress.text
-        # postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
 
-        self.__data.append((state, city, neighborhood, school_name, "Escola Pública", telephone, email, streetAddress))
-        # print(state)
-        # print(city[:-3])
-        # print(neighborhood)
-        # print(school_name)
-        # print(telephone)
-        # print(email)
-        # print(streetAddress)
-        
-        # print(postalCode)    
+        self.__data.append((state, city, neighborhood, school_name, "Escola Privada", telephone, email, streetAddress))
 
     def get_data_private(self):
         pool = ThreadPool(64)
         list(pool.imap(self.handler_data_private, self.__schools_links_private))
-
-    def work_aux(self):
-        # with open("public_schools.txt") as file:
-        #     for line in file:
-        #         self.__public.append(line[:-1])
-
-        # with open("private_schools.txt") as file:
-        #     for line in file:
-        #         self.__private.append(line[:-1])                        
-
-        # self.get_all_links_public()
-        # self.get_all_links_private()
-
-        # public_pages = self.__public + self.__all_pages_public
-        # with open("all_pages_public.txt","w") as file:
-        #     for link in public_pages:
-        #         file.write(link+"\n")
-                 
-        # private_pages = self.__private + self.__all_pages_private
-        # with open("all_pages_private.txt","w") as file:
-        #     for link in private_pages:
-        #         file.write(link+"\n")
-
-        # with open("all_pages_public.txt") as file:
-        #     for line in file:
-        #         self.__all_pages_public.append(line[:-1])
-
-        # with open("all_pages_private.txt") as file:
-        #     for line in file:
-        #         self.__all_pages_private.append(line[:-1])  
-
-        # self.get_schools_public(self.__all_pages_public)
-        # self.get_schools_private(self.__all_pages_private)
-
-        # with open("schools_links_public.txt","w") as file:
-        #     for link in self.__schools_links_public:
-        #         file.write(link+"\n")
-        # with open("schools_links_private.txt","w") as file:
-        #     for link in self.__schools_links_private:
-        #         file.write(link+"\n")        
-        #  
-
-        with open("schools_links_public.txt") as file:
-            for line in file:
-                self.__schools_links_public.append(line[:-1])
-
-        with open("schools_links_private.txt") as file:
-            for line in file:
-                self.__schools_links_private.append(line[:-1])
-
-        self.get_data_public()
-        self.get_data_private()
-        self.write_sheet()
-
-    def work(self):
-        self.get_cities()
-        self.get_school_category()
-
-        with open("public_schools.txt","w") as file:
-            for link in self.__public:
-                file.write(link+"\n")          
-
-        with open("private_schools.txt","w") as file:
-            for link in self.__private:
-                file.write(link+"\n")   
-        # self.get_all_links()
-        # pages = self.__categories + self.__all_pages
-        # pages_sorted = sorted(pages)
-        # with open("all_pages.txt","w") as file:
-        #     for link in pages_sorted:
-        #         file.write(link+"\n")        
-        # self.get_schools()                
 
     def write_sheet(self):
         workbook = xlsxwriter.Workbook("new_test_escolas.xlsx")
         worksheet = workbook.add_worksheet()
         bold = workbook.add_format({'bold': True})
 
-        # values = list(self.__data.values())
         worksheet.write(0, 0, "Estado",bold)
         worksheet.write(0, 1, "Cidade",bold)
         worksheet.write(0, 2, "Bairro",bold)
@@ -316,30 +250,55 @@ class Escola:
             worksheet.write(row_number+1, 5, info[5])
             worksheet.write(row_number+1, 6, info[6])
             worksheet.write(row_number+1, 7, info[7])
-        workbook.close()
+        workbook.close() 
 
-    # def test(self):
-    #     response = requests.get("https://www.escol.as/279496-pingo-de-gente-creche-centro-de-educacao-infantil")
-    #     soup = BeautifulSoup(response.text, "html.parser")
-    #     school = soup.find("div", attrs={"class":"school"})
-    #     address = school.find("table",attrs={"itemprop":"address"})
+    def write_links(self, data, name):
+        with open(name,"w") as file:
+            for link in data:
+                file.write(link+"\n")              
+
+    def work(self):
+        self.get_cities()
+        print("\nCidades coletadas!")
+        print("{cities} cidades foram coletadas!\n".format(cities=len(self.__cities)))
+
+        self.get_school_category()
+        print("Escolas coletadas!")
+        print("{public} escolas públicas foram coletadas! (OBS: Página 1)".format(public=len(self.__public)))
+        print("{private} escolas privadas foram coletadas! (OBS: Página 1)\n".format(private=len(self.__private)))
+        self.get_all_links_public()
+        self.get_all_links_private()
+        print("{all_pages_public} páginas restantes das escolas públicas foram coletadas!".format(all_pages_public=len(self.__all_pages_public)))
+        print("{all_pages_private} páginas restantes das escolas públicas foram coletadas!\n".format(all_pages_private=len(self.__all_pages_private)))
+
+        new_public = self.__public + self.__all_pages_public
+        new_private = self.__private + self.__all_pages_private
+        print("{new_public} páginas contendo escolas públicas foram coletadas no total!".format(new_public=len(new_public)))
+        print("{new_private} páginas contendo escolas privadas foram coletadas no total\n!".format(new_private=len(new_private)))
+
+        self.get_schools_public(new_public)
+        self.get_schools_private(new_private)        
+        print("{schools_links_public} links de escolas públicas foram coletados!".format(schools_links_public=len(self.__schools_links_public)))
+        print("{schools_links_private} links de escolas privadas foram coletados!\n".format(schools_links_private=len(self.__schools_links_private)))
         
-    #     state = address.find("span",attrs={"itemprop":"addressRegion"}).text
-    #     city = address.find("span",attrs={"itemprop":"addressLocality"}).text[:-3]
-    #     neighborhood = address.find("strong").text
-    #     school_name = school.find("h1", attrs={"class":"school-name"}).text
-    #     telephone = address.find("a",attrs={"itemprop":"telephone"}).text
-    #     email = address.find("td", attrs={"itemprop":"email"}).text
-    #     streetAddress = address.find("span",attrs={"itemprop":"streetAddress"}).text
-    #     # postalCode = address.find("span",attrs={"itemprop":"postalCode"}).text
+        self.get_data_public()
+        self.get_data_private()
+        print("{data} foram coletados e gravados na planilha com sucesso!".format(data=len(self.__data)))
+        self.write_sheet()
 
-    #     self.__data[self.__key] = state, city, neighborhood, school_name, "public", telephone, email
-    #     self.__key += 1
-    #     print(state)
-    #     print(city)
-    #     print(neighborhood)
-    #     print(school_name)
-    #     print(telephone)
-    #     print(email)
-    #     print(streetAddress)
-    #     # print(postalCode)        
+        #Links das primeiras páginas de cada categoria e cidade.
+        self.write_links(self.__public, "initial_links_public.txt")
+        self.write_links(self.__private, "initial_links_private.txt")
+
+        #Links das páginas seguintes, pg2, pg3, etc.
+        self.write_links(self.__all_pages_public, "all_pages_public.txt")
+        self.write_links(self.__all_pages_private, "all_pages_private.txt")
+
+        #Somatório dos links das primeiras páginas com as seguintes.
+        self.write_links(new_public, "new_public.txt")
+        self.write_links(new_private, "new_private.txt")
+        
+        #Links de todas as escolas, públicas e privadas.
+        self.write_links(self.__schools_links_public, "schools_links_public.txt")
+        self.write_links(self.__schools_links_private, "schools_links_private.txt")
+        
