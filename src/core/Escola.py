@@ -3,6 +3,7 @@ from multiprocessing.pool import ThreadPool
 from time import time
 import requests
 import xlsxwriter
+import os
 
 class Escola:
     def __init__(self,url):
@@ -15,7 +16,8 @@ class Escola:
         self.__all_pages_private = []
         self.__schools_links_public = []
         self.__schools_links_private = []
-        self.__data = []
+        self.__data = {}
+        self.__key = 0
 
     def __get_states(self):
         response = requests.get(self.__url)
@@ -179,7 +181,8 @@ class Escola:
         temp_streetAddress = address.find("span",attrs={"itemprop":"streetAddress"})
         if temp_streetAddress: streetAddress = temp_streetAddress.text
 
-        self.__data.append((state, city, neighborhood, school_name, "Escola Pública", telephone, email, streetAddress))
+        self.__data[self.__key] = state, city, neighborhood, school_name, "Escola Pública", telephone, email, streetAddress
+        self.__key += 1
 
     def get_data_public(self):
         pool = ThreadPool(64)
@@ -221,16 +224,19 @@ class Escola:
         temp_streetAddress = address.find("span",attrs={"itemprop":"streetAddress"})
         if temp_streetAddress: streetAddress = temp_streetAddress.text
 
-        self.__data.append((state, city, neighborhood, school_name, "Escola Privada", telephone, email, streetAddress))
+        self.__data[self.__key] = state, city, neighborhood, school_name, "Escola Privada", telephone, email, streetAddress
+        self.__key += 1
 
     def get_data_private(self):
         pool = ThreadPool(64)
         list(pool.imap(self.handler_data_private, self.__schools_links_private))
 
     def write_sheet(self):
-        workbook = xlsxwriter.Workbook("Escolas_v2.xlsx")
+        workbook = xlsxwriter.Workbook("Escolas_v3.xlsx")
         worksheet = workbook.add_worksheet()
         bold = workbook.add_format({'bold': True})
+
+        data_values = list(self.__data.values())
 
         worksheet.write(0, 0, "Estado",bold)
         worksheet.write(0, 1, "Cidade",bold)
@@ -241,7 +247,7 @@ class Escola:
         worksheet.write(0, 6, "Email",bold)
         worksheet.write(0, 7, "Endereço",bold)
 
-        for row_number, info in enumerate(self.__data):
+        for row_number, info in enumerate(data_values):
             worksheet.write(row_number+1, 0, info[0])
             worksheet.write(row_number+1, 1, info[1])
             worksheet.write(row_number+1, 2, info[2])
@@ -258,6 +264,7 @@ class Escola:
                 file.write(link+"\n")              
 
     def work(self):
+        start = time()
         self.get_cities()
         print("\nCidades coletadas!")
         print("{cities} cidades foram coletadas!\n".format(cities=len(self.__cities)))
@@ -284,21 +291,22 @@ class Escola:
         self.get_data_public()
         self.get_data_private()
         print("{data} foram coletados e gravados na planilha com sucesso!".format(data=len(self.__data)))
+        print("Tempo:",time()-start)
         self.write_sheet()
 
         #Links das primeiras páginas de cada categoria e cidade.
-        self.write_links(self.__public, "initial_links_public.txt")
-        self.write_links(self.__private, "initial_links_private.txt")
+        self.write_links(self.__public, os.path.join("links","initial_links_public.txt"))
+        self.write_links(self.__private, os.path.join("links","initial_links_private.txt"))
 
         #Links das páginas seguintes, pg2, pg3, etc.
-        self.write_links(self.__all_pages_public, "all_pages_public.txt")
-        self.write_links(self.__all_pages_private, "all_pages_private.txt")
+        self.write_links(self.__all_pages_public, os.path.join("links","all_pages_public.txt"))
+        self.write_links(self.__all_pages_private, os.path.join("links","all_pages_private.txt"))
 
         #Somatório dos links das primeiras páginas com as seguintes.
-        self.write_links(new_public, "new_public.txt")
-        self.write_links(new_private, "new_private.txt")
+        self.write_links(new_public, os.path.join("links","new_public.txt"))
+        self.write_links(new_private, os.path.join("links","new_private.txt"))
         
         #Links de todas as escolas, públicas e privadas.
-        self.write_links(self.__schools_links_public, "schools_links_public.txt")
-        self.write_links(self.__schools_links_private, "schools_links_private.txt")
+        self.write_links(self.__schools_links_public, os.path.join("links","schools_links_public.txt"))
+        self.write_links(self.__schools_links_private, os.path.join("links","schools_links_private.txt"))
         
