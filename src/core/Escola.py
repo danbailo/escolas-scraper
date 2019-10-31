@@ -228,7 +228,7 @@ class Escola:
         list(pool.imap(self.handler_data_private, self.__schools_links_private))
 
     def write_sheet(self):
-        workbook = xlsxwriter.Workbook("new_test_escolas.xlsx")
+        workbook = xlsxwriter.Workbook("Escolas_v2.xlsx")
         worksheet = workbook.add_worksheet()
         bold = workbook.add_format({'bold': True})
 
@@ -269,12 +269,12 @@ class Escola:
         self.get_all_links_public()
         self.get_all_links_private()
         print("{all_pages_public} páginas restantes das escolas públicas foram coletadas!".format(all_pages_public=len(self.__all_pages_public)))
-        print("{all_pages_private} páginas restantes das escolas públicas foram coletadas!\n".format(all_pages_private=len(self.__all_pages_private)))
+        print("{all_pages_private} páginas restantes das escolas privadas foram coletadas!\n".format(all_pages_private=len(self.__all_pages_private)))
 
         new_public = self.__public + self.__all_pages_public
         new_private = self.__private + self.__all_pages_private
         print("{new_public} páginas contendo escolas públicas foram coletadas no total!".format(new_public=len(new_public)))
-        print("{new_private} páginas contendo escolas privadas foram coletadas no total\n!".format(new_private=len(new_private)))
+        print("{new_private} páginas contendo escolas privadas foram coletadas no total!\n".format(new_private=len(new_private)))
 
         self.get_schools_public(new_public)
         self.get_schools_private(new_private)        
